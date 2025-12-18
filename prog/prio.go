@@ -264,10 +264,17 @@ type ChoiceTable struct {
 	target *Target
 	runs   [][]int32
 	calls  []*Syscall
+	// static is the static-only priority matrix based on type/resource analysis.
+	static [][]int32
+	// prios is the (static + dynamic) priority matrix used to build ct.runs.
+	// It's also used by relation-aware selection when mixing in the dynamic component.
+	prios [][]int32
 }
 
 func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool) *ChoiceTable {
 	prios, enabledCalls := target.CalculatePriorities(corpus, enabled)
+	// Keep a static-only copy for relation-aware selection.
+	staticOnly := target.calcStaticPriorities(enabledCalls)
 	var generatableCalls []*Syscall
 	for c := range enabledCalls {
 		generatableCalls = append(generatableCalls, c)
@@ -293,11 +300,65 @@ func (target *Target) BuildChoiceTable(corpus []*Prog, enabled map[*Syscall]bool
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{target, run, generatableCalls}
+	return &ChoiceTable{target, run, generatableCalls, staticOnly, prios}
 }
 
 func (ct *ChoiceTable) Generatable(call int) bool {
 	return ct.runs[call] != nil
+}
+
+// ChooseWeighted selects a syscall based on the aggregate influence of all existing calls.
+// This is similar to a relation-aware selection strategy:
+// weight(next) = sum_{prev in existingCalls} (static[prev][next] + beta*dynamicOnly[prev][next]).
+// Here dynamicOnly = (prios - static), where prios is (static+dynamic) from CalculatePriorities.
+func (ct *ChoiceTable) ChooseWeighted(r *rand.Rand, existingCalls []*Call) int {
+	if len(existingCalls) == 0 {
+		return ct.choose(r, -1)
+	}
+	weights := make([]int32, len(ct.target.Syscalls))
+	var totalWeight int64
+	const dynNum, dynDen = int64(3), int64(10) // beta = 0.3
+	for _, call := range existingCalls {
+		prev := call.Meta.ID
+		if prev < 0 || prev >= len(ct.prios) || prev >= len(ct.static) {
+			continue
+		}
+		staticRow := ct.static[prev]
+		prioRow := ct.prios[prev]
+		for next, wAll := range prioRow {
+			if !ct.Generatable(next) {
+				continue
+			}
+			wStatic := int64(staticRow[next])
+			wDyn := int64(wAll) - wStatic
+			if wDyn < 0 {
+				// Should not happen (wAll is static+dynamic), but be defensive.
+				wDyn = 0
+			}
+			w := wStatic + wDyn*dynNum/dynDen
+			if w <= 0 {
+				continue
+			}
+			weights[next] += int32(w)
+			totalWeight += w
+		}
+	}
+	if totalWeight == 0 {
+		return ct.choose(r, -1)
+	}
+	val := r.Int63n(totalWeight)
+	var sum int64
+	for id, w := range weights {
+		if w <= 0 {
+			continue
+		}
+		sum += int64(w)
+		if val < sum {
+			return id
+		}
+	}
+	// Should not happen, but keep a safe fallback.
+	return ct.choose(r, -1)
 }
 
 func (ct *ChoiceTable) choose(r *rand.Rand, bias int) int {
