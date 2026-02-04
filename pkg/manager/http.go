@@ -147,7 +147,7 @@ func (serv *HTTPServer) httpAction(w http.ResponseWriter, r *http.Request) {
 
 func (serv *HTTPServer) httpMain(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		UIPageHeader: serv.pageHeader(r, "syzkaller"),
+		UIPageHeader: serv.pageHeader(r, "logickaller"),
 		Log:          log.CachedLogOutput(),
 	}
 
