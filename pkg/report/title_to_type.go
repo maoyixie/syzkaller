@@ -284,6 +284,12 @@ var titleToType = []struct {
 		},
 		crashType: crash.SyzFailure,
 	},
+	{
+		includePrefixes: []string{
+			"SYZLOGIC:",
+		},
+		crashType: crash.Bug,
+	},
 
 	// DEFAULTS.
 	{

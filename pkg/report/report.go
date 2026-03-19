@@ -868,6 +868,18 @@ var (
 // But also catches crashes in Go programs in gvisor/fuchsia.
 var commonOopses = []*oops{
 	{
+		// Logic bugs detected by executor's return value oracle.
+		[]byte("SYZLOGIC:"),
+		[]oopsFormat{
+			{
+				title:        compile("SYZLOGIC:(.*)"),
+				fmt:          "SYZLOGIC:%[1]v",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	{
 		// Errors produced by executor's fail function.
 		[]byte("SYZFAIL:"),
 		[]oopsFormat{

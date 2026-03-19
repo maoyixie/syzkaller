@@ -1,0 +1,1 @@
+cmd_/home1/maoyi/logickaller/poc/buggy_chardev/Module.symvers := sed 's/\.ko$$/\.o/' /home1/maoyi/logickaller/poc/buggy_chardev/modules.order | scripts/mod/modpost -m -a  -o /home1/maoyi/logickaller/poc/buggy_chardev/Module.symvers -e -i Module.symvers   -T -

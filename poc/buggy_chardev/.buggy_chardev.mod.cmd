@@ -1,0 +1,1 @@
+cmd_/home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.mod := { echo  /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.o;  echo; } > /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.mod

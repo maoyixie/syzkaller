@@ -1,0 +1,1 @@
+cmd_/home1/maoyi/logickaller/poc/buggy_chardev/modules.order := {   echo /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.ko; :; } | awk '!x[$$0]++' - > /home1/maoyi/logickaller/poc/buggy_chardev/modules.order

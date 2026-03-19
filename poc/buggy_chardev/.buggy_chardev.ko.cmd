@@ -1,0 +1,1 @@
+cmd_/home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.ko /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.o /home1/maoyi/logickaller/poc/buggy_chardev/buggy_chardev.mod.o;  true

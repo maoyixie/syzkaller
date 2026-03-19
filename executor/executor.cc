@@ -1594,6 +1594,48 @@ void execute_call(thread_t* th)
 	if (th->call_props.rerun > 0)
 		debug(" rerun=%d", th->call_props.rerun);
 	debug("\n");
+
+#if GOOS_linux
+	// Logic bug detection: check that I/O syscalls don't return more bytes than requested.
+	// If read/write/recv/send returns a value greater than the count argument,
+	// it indicates a kernel logic bug (e.g., info leak, buffer overread).
+	// Syzkaller does not check return value semantics, only crashes.
+	if (th->res > 0 && !call->call) {
+		intptr_t count = th->args[2];
+		if (count > 0) {
+			bool check = false;
+			switch (call->sys_nr) {
+			case __NR_read:
+			case __NR_write:
+			case __NR_pread64:
+			case __NR_pwrite64:
+#ifdef __NR_recv
+			case __NR_recv:
+#endif
+#ifdef __NR_send
+			case __NR_send:
+#endif
+			case __NR_recvfrom:
+			case __NR_sendto:
+				check = true;
+				break;
+			}
+			if (check && th->res > count) {
+				// Write to stderr (captured by runner as ExecResult.output).
+				fprintf(stderr, "SYZLOGIC: %s returned %lld but count is %lld\n",
+					call->name, (long long)th->res, (long long)count);
+				// Also write to kernel log so the VM console monitor detects it
+				// through the existing crash pipeline (monitorExecution -> ContainsCrash).
+				int kmsg = open("/dev/kmsg", O_WRONLY | O_CLOEXEC);
+				if (kmsg >= 0) {
+					dprintf(kmsg, "<3>SYZLOGIC: %s returned %lld but count is %lld\n",
+						call->name, (long long)th->res, (long long)count);
+					close(kmsg);
+				}
+			}
+		}
+	}
+#endif
 }
 
 static uint32 hash(uint32 a)
