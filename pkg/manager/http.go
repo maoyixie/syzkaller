@@ -109,6 +109,7 @@ func (serv *HTTPServer) Serve(ctx context.Context) error {
 	// keep-sorted end
 	if serv.CrashStore != nil {
 		handle("/crash", serv.httpCrash)
+		handle("/rca", serv.httpRCA)
 		handle("/report", serv.httpReport)
 	}
 	// Browsers like to request this, without special handler this goes to / handler.
@@ -402,7 +403,24 @@ func (serv *HTTPServer) httpCrash(w http.ResponseWriter, r *http.Request) {
 		UIPageHeader: serv.pageHeader(r, info.Title),
 		UICrashType:  makeUICrashType(info, serv.StartTime, nil),
 	}
+	if info.HasRCA {
+		data.RCA, _ = LoadRCA(serv.Cfg.Workdir, crashID)
+	}
 	executeTemplate(w, crashTemplate, data)
+}
+
+func (serv *HTTPServer) httpRCA(w http.ResponseWriter, r *http.Request) {
+	crashID := r.FormValue("id")
+	if !crashIDRe.MatchString(crashID) {
+		http.Error(w, "invalid crash ID", http.StatusBadRequest)
+		return
+	}
+	_, err := RunRCA(serv.Cfg.Workdir, crashID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("RCA failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/crash?id="+crashID, http.StatusFound)
 }
 
 func (serv *HTTPServer) httpCorpus(w http.ResponseWriter, r *http.Request) {
@@ -1080,6 +1098,7 @@ type UISyscallsData struct {
 type UICrashPage struct {
 	UIPageHeader
 	UICrashType
+	RCA *RCAResult
 }
 
 type UICrashType struct {

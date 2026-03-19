@@ -32,6 +32,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<th><a onclick="return sortTable(this, 'Last Time', textSort, true)" href="#">Last Time</a></th>
 		<th><a onclick="return sortTable(this, 'Report', textSort)" href="#">Report</a></th>
 		<th><a onclick="return sortTable(this, 'Repro Attempt Count', numSort)" href="#">Repro Attempt Count</a></th>
+		<th>RCA</th>
 	</tr>
 	</thead>
 	<tbody>
@@ -58,6 +59,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			{{end}}
 		</td>
 		<td class="stat">{{if $c.ReproAttempts}}{{$c.ReproAttempts}}{{end}}</td>
+		<td>{{if $c.HasRCA}}<a href="/crash?id={{$c.ID}}">View</a>{{end}}</td>
 	</tr>
 	{{end}}
 	</tbody>

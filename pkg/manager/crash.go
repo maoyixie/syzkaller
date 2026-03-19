@@ -221,6 +221,7 @@ type BugInfo struct {
 	LastTime      time.Time
 	HasRepro      bool
 	HasCRepro     bool
+	HasRCA        bool
 	StraceFile    string // relative to the workdir
 	ReproAttempts int
 	Crashes       []*CrashInfo
@@ -269,6 +270,8 @@ func (cs *CrashStore) BugInfo(id string, full bool) (*BugInfo, error) {
 			ret.HasRepro = true
 		} else if f == cReproFileName {
 			ret.HasCRepro = true
+		} else if f == rcaFileName {
+			ret.HasRCA = true
 		} else if f == straceFileName {
 			ret.StraceFile = filepath.Join(dir, f)
 		} else if strings.HasPrefix(f, "repro") {
